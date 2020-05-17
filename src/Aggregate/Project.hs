@@ -87,12 +87,13 @@ instance FromJSON Role
 
 makeLenses ''Project
 
-_genEventProject :: Project -> UTCTime -> Int -> Value -> (Event, Project) 
-_genEventProject prj time payloadType payload  =
+_updateAndgenEventProject :: Project -> UTCTime -> UpdateProject -> (Event, Project) 
+_updateAndgenEventProject prj time payload  =
     let 
-        event = genEvent (prj ^. projectId) T.Project time ((prj ^. seqUp) + 1) payloadType payload
+        project = applyUpdate prj payload
+        event = genEvent (project ^. projectId) T.Project time ((project ^. seqUp) + 1) $ toJSON payload
     in
-    (event, over seqUp (+ 1) prj)
+    (event, over seqUp (+ 1) project)
 
 
 -- First Operation
@@ -102,7 +103,7 @@ createProject prjId shortName name startDate mode time =
     let 
         prj = Project prjId 0 shortName name Nothing startDate Nothing [] [] [] mode []
     in
-    (genEvent prjId T.Project time 0 0 (toJSON prj), prj)
+    (genEvent prjId T.Project time 0 (toJSON prj), prj)
 
 resetProject :: Int -> Value -> Either String Project
 resetProject pos v = 
@@ -110,30 +111,25 @@ resetProject pos v =
         Success p -> Right p
         Error m -> Left $ "Can not create a project at position "++(show pos)++ " ("++m++")"
 
--- Update the name
-data UpdateName = UpdateName {
-    oldName :: Text
-    , newName :: Text
-} deriving (Generic)
-instance ToJSON UpdateName
-instance FromJSON UpdateName
 
+-- For All the updates
+data UpdateProject = 
+    UpdateName Text
+    deriving (Show, Generic)
+instance ToJSON UpdateProject
+instance FromJSON UpdateProject
+
+applyUpdate :: Project -> UpdateProject  -> Project
+applyUpdate project update = 
+    case update of
+        UpdateName newName -> set name newName project
+
+
+-- Update the Name
 updateName :: Project -> Text -> UTCTime -> (Event, Project)
 updateName prj newName time =
-    let 
-        (event, newPrj) = _genEventProject prj time 1 $ toJSON $ UpdateName (prj ^. name) newName
-    in
-    (event, set name newName newPrj)
-
-applyUpdateName :: Either String Project -> Int -> Value -> UTCTime -> Either String Project
-applyUpdateName ep pos v time = 
-    case ep of 
-        Right p -> 
-            case fromJSON v :: Result UpdateName of
-                Success u -> Right $ snd $ updateName p (newName u) time
-                Error m -> Left $ "Can not decode an UpdatName at position "++(show pos)++" ("++m++")" 
-        _ -> ep        
-
+    _updateAndgenEventProject prj time $ UpdateName newName
+    
 -- Event sourcing
 start = Left "start"
 
@@ -143,10 +139,15 @@ sourceProject events =
         Left pos -> Left $ "Can not reconstruct a Project, the sequence #"++(show pos)++" is missing"
         Right (x:xs) ->
             case fromJSON $ _payload x :: Result Project of
-                Error m -> Left $ "Can no recreate the first version of the Project #"++(show $ _id x)++ " ("++m++")"
+                Error m -> Left $ "Can not recreate the first version of the Project #"++(show $ _id x)++ " ("++m++")"
                 Success p -> foldl (\ep e ->
-                    case _payLoadType e of
-                        0 -> resetProject (_seq e) $ _payload e 
-                        1 -> applyUpdateName ep (_seq e) (_payload e) (_time e)
-                        _ -> Left $ "Don't support the payload type at position #"++(show $ _seq e)++" for the project #"++(show $ _id e)   
+                    case ep of 
+                        Right project -> 
+                            let 
+                                newProject = over seqUp (+ 1) project
+                            in 
+                            case fromJSON (_payload e) :: Result UpdateProject of
+                                Success update -> Right $ applyUpdate newProject update  
+                                Error m -> Left $ "Can not decode a Project update at position "++(show $ _seq e)++" ("++m++")" 
+                        _ -> ep 
                     ) (Right p) xs
