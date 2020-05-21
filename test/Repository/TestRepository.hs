@@ -10,7 +10,7 @@ import Aggregate.TestProject (lifeOfAProject)
 main :: IO ()
 main = do
     let uuid1 = fromMaybe nil $ fromString "ba7fd9d6-0815-410e-b9f4-91c30244bc7f"
-    let uuid2 = fromMaybe nil $ fromString "ba7fd9d6-0815-410e-b9f4-91c30244bc7e"
+    --let uuid2 = fromMaybe nil $ fromString "ba7fd9d6-0815-410e-b9f4-91c30244bc7e"
     repo <- M.new
     putStrLn $ "REPO1 =" ++ (show repo)
     let (events, project) = lifeOfAProject uuid1

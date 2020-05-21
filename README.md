@@ -28,7 +28,7 @@ It gives also the possibility to check some interresting kind of evolutions on t
 | Port | TODO | Used to decode the requests | Servant implementation. 
 | Filter | TODO | Used to check the request parameters | As I will use Servant, this part should very simple and focus on the values of the parameters.
 | Domain Event Dispatcher| TODO | Used to dispatch the domain events to the Projections Updaters and to the external Adapter. It also have to store the Domain Events in the Domain Event DB. It is a key component for the coherence of the whole system. |
-| Domain Event DB | TODO | Used to store the Domain Events. Very usefull to make the Event Sourcing part of the project, and to add some new projections. | A in-memory version for test purpose and another one based on PostgreSQL ?  
+| Domain Event DB | A in-memory version. | Used to store the Domain Events. Very usefull to make the Event Sourcing part of the project, and to add some new projections. | A in-memory version for test purpose and another one based on PostgreSQL ?  
 | Command Handler | TODO | Used to orchestrate the Aggregate Repository, the and to perform the Commands on the Aggregates. |
 | Aggregate Repository | something | Used to provides a managed access to the Aggregates. | A in-memory version, based on the Domain Event DB, and maybe in the future on a managed Redis (with hedis ?)
 | Aggregate | first samples | Implements the Domain Aggregates, and generates Domain Event for the records... | today a very naive version to describe a project.
