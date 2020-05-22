@@ -2,7 +2,7 @@ module EventDB.Memory.EventDBMemory (EventDBMemo, EventDB.Memory.EventDBMemory.n
 
 import Data.UUID (UUID)
 import Data.List
-import DomainEvent.Event (Event(..))
+import DomainEvent.Event (Event(..), checkSequence)
 import EventDB.EventDB (EventDB(..))
 import Data.HashTable.IO as H
 
@@ -17,16 +17,28 @@ new = do
     return $ EventDBMemo hm
 
 instance EventDB EventDBMemo where
-    add db event = do
-        let key = (_id event)
+    add db events key = do
         old <- H.lookup (hmap db) key
         case old of
-            Nothing -> H.insert (hmap db) key [event]
-            Just vold -> do
-                H.delete (hmap db) key 
-                H.insert (hmap db) key $ vold ++ [event]
+            Nothing -> do 
+                H.insert (hmap db) key events
+                return $ Right ()
+            Just vold ->
+                case checkSequence (vold ++ events) of 
+                    Left _ -> do 
+                        return $ Left "At least, two events have the samme sequence value :("
+                    Right events -> do
+                        H.delete (hmap db) key 
+                        H.insert (hmap db) key events
+                        return $ Right ()
     events db key = do
         found <- H.lookup (hmap db) key
         case found of
             Nothing -> return []
             Just evts -> return evts
+    partialEvents db key ver = do
+        found <- H.lookup (hmap db) key
+        case found of
+            Nothing -> return []
+            Just evts -> 
+                return $ snd $ break (\e -> _sequence e > ver) $ sort evts

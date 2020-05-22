@@ -6,27 +6,69 @@
 module Repository.Memory.RepositoryMemory (RepoMemo, Repository.Memory.RepositoryMemory.new) where
 
 import Data.UUID (UUID)
-import Data.Aeson (Value)
-import Repository.Repository
 import Data.HashTable.IO as H
 
-data RepoMemo = RepoMemo {
-    hmap :: BasicHashTable UUID Value
+import Repository.Repository
+import EventDB.EventDB  (EventDB(..))
+import Aggregate.Aggregate (Version, version)
+import Aggregate.Project (Project, ProjectId, sourceProject)
+
+data ValueRepo = Project Project
+
+data (EventDB a) => RepoMemo a = RepoMemo {
+    eventDB :: a
+    , hmap :: BasicHashTable UUID ValueRepo
     } deriving (Show)
 
-new :: IO RepoMemo
-new = do
+new :: (EventDB a) => a -> IO (RepoMemo a)
+new edb = do
     hm <- H.new
-    return $ RepoMemo hm
+    return $ RepoMemo edb hm
 
-instance Repository RepoMemo where
-    add repo key val = H.insert (hmap repo) key val
-    get repo key = H.lookup (hmap repo) key
-    del repo key = H.delete (hmap repo) key    
-    put repo key val = do
-        old <- get repo key
-        case old of
-            Nothing -> add repo key val
-            Just vold -> do
-                del repo key
-                add repo key val
+instance (EventDB a) => Repository (RepoMemo a) where
+    --fetchProject :: (RepoMemo a) -> ProjectId -> Version -> IO (Either RepositoryError Project)
+    fetchProject repo projectId ver = do
+        current <- H.lookup (hmap repo) projectId
+        case current of
+            Nothing -> do 
+                events <- events (eventDB repo) projectId
+                if length events == 0 then return $ Left NO_DATA 
+                else case sourceProject Nothing events of
+                    Left msg -> return $ Left $ SEQUENCE_ERROR msg 
+                    Right project -> do 
+                        H.insert (hmap repo) projectId $ Project project 
+                        if version project == ver then 
+                            return $ Right project
+                        else 
+                            return $ Left VERSION_ERROR
+            Just (Project curProject) -> do
+                events <- partialEvents (eventDB repo) projectId (version curProject) 
+                if (length events > 0) then do
+                    H.delete (hmap repo) projectId 
+                    case sourceProject (Just curProject) events of
+                        Left msg -> return $ Left $ SEQUENCE_ERROR msg 
+                        Right project -> do 
+                            H.insert (hmap repo) projectId $ Project project 
+                            if version project == ver then 
+                                return $ Right project
+                            else 
+                                return $ Left VERSION_ERROR
+                else 
+                    if version curProject == ver then 
+                        return $ Right curProject
+                    else 
+                        return $ Left VERSION_ERROR
+            --Just _ -> return $ Left DATA_TYPE_ERROR
+
+
+
+    -- add repo key val = 
+    -- get repo key = 
+    -- del repo key = H.delete (hmap repo) key    
+    -- put repo key val = do
+    --     old <- get repo key
+    --     case old of
+    --         Nothing -> add repo key val
+    --         Just vold -> do
+    --             del repo key
+    --             add repo key val

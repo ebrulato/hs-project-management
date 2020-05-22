@@ -14,7 +14,7 @@ data Event = Event {
     _id :: UUID
     , _aggregate :: AggregateType 
     , _time :: UTCTime
-    , _seq :: Int
+    , _sequence :: Int
     , _payload :: Value
 } deriving (Generic, Eq)
 
@@ -22,25 +22,29 @@ instance ToJSON Event
 instance FromJSON Event
 
 instance Ord Event where
-    compare e f = compare (_seq e) (_seq f) 
-    (<) e f = (_seq e) < (_seq f)
-    (<=) e f = (_seq e) <= (_seq f)
-    (>) e f = (_seq e) > (_seq f)
-    (>=) e f = (_seq e) >= (_seq f)
+    compare e f = compare (_sequence e) (_sequence f) 
+    (<) e f = (_sequence e) < (_sequence f)
+    (<=) e f = (_sequence e) <= (_sequence f)
+    (>) e f = (_sequence e) > (_sequence f)
+    (>=) e f = (_sequence e) >= (_sequence f)
 
 genEvent :: UUID -> AggregateType -> UTCTime -> Int -> Value -> Event 
 genEvent id aggregate time seq payload =
     Event id aggregate time seq payload 
 
 -- Check that the sequence is complete, and returned it with the correct order for parsing
+-- the sequence could be partial (fot partial update case)
+-- the sequence could be empty
 checkSequence :: [Event] -> Either Int [Event]
 checkSequence events =
     let 
         eventsSorted = sort events
-        pos = foldl (\pos e -> if (_seq e) == pos then pos + 1 else pos) 0 eventsSorted
+        firstVersion = if length eventsSorted == 0 then 0 else _sequence $ head events  
+        lastVersion = if length eventsSorted == 0 then 0 else _sequence $ last events
+        foundedVersion = foldl (\ver e -> if (_sequence e) == ver then ver + 1 else ver) firstVersion eventsSorted
     in
-    if (pos == length eventsSorted) then
+    if foundedVersion == lastVersion then
         Right eventsSorted
     else
-        Left pos
+        Left foundedVersion
 

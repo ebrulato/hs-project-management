@@ -22,8 +22,9 @@ import Data.Aeson (Value, ToJSON, FromJSON, toJSON, fromJSON, Result(..))
 import Control.Lens -- hiding (element)
 import Control.Lens.TH
 import GHC.Generics (Generic)
-import DomainEvent.Event 
 
+import DomainEvent.Event 
+import Aggregate.Aggregate (Aggregate(..), Version)
 import qualified Aggregate.Type.Types as T (Price, UserId, AggregateType(..)) 
 import DomainEvent.Event (Event(..), genEvent)
 
@@ -33,7 +34,7 @@ genProjectId = nextRandom
 
 data Project = Project {
     _projectId :: ProjectId
-    , _seqUp :: Int
+    , _num :: Version
     , _shortName :: String
     , _name :: Text
     , _description :: Maybe Text
@@ -44,9 +45,13 @@ data Project = Project {
     , _extraDayOff :: [Day]
     , _mode :: ProjectMode
     , _workload :: [(Role, T.UserId, Day)] 
-} deriving (Show, Generic)
+} deriving (Show, Generic, Eq)
 instance ToJSON Project
 instance FromJSON Project
+
+instance Aggregate Project where
+    aggregateId = _projectId
+    version = _num
 
 type UserStoryId = Int
 
@@ -59,29 +64,29 @@ data UserStory = UserStory {
     , _businessValue :: BusinessValue
     , _technical :: Complexity
     , _state :: UserStoryState
-} deriving (Show, Generic)
+} deriving (Show, Generic, Eq)
 instance ToJSON UserStory
 instance FromJSON UserStory
 
-data BusinessValue = Nice | Should | Must deriving (Show, Generic)
+data BusinessValue = Nice | Should | Must deriving (Show, Generic, Eq)
 instance ToJSON BusinessValue
 instance FromJSON BusinessValue
 
-data Complexity = V0_5 | V1 | V2 | V3 | V5 | V8 | V13 | V20 deriving (Show, Generic)
+data Complexity = V0_5 | V1 | V2 | V3 | V5 | V8 | V13 | V20 deriving (Show, Generic, Eq)
 instance ToJSON Complexity
 instance FromJSON Complexity
 
-data ProjectMode = Scrum Int | Kanban deriving (Show, Generic)
+data ProjectMode = Scrum Int | Kanban deriving (Show, Generic, Eq)
 instance ToJSON ProjectMode
 instance FromJSON ProjectMode
 
-data UserStoryState = TODO | RUN | DONE deriving (Show, Generic)
+data UserStoryState = TODO | RUN | DONE deriving (Show, Generic, Eq)
 instance ToJSON UserStoryState
 instance FromJSON UserStoryState
 
 data ProjectState = PRESALE | SETUP | DEVELOPMENT | HOMOLOGATION | PROD | CLOSED deriving (Show)
 
-data Role = DM | PPO | TL | SM | DEV deriving (Show, Generic)
+data Role = DM | PPO | TL | SM | DEV deriving (Show, Generic, Eq)
 instance ToJSON Role
 instance FromJSON Role
 
@@ -91,13 +96,12 @@ _updateAndgenEventProject :: Project -> UTCTime -> UpdateProject -> (Event, Proj
 _updateAndgenEventProject prj time payload  =
     let 
         project = applyUpdate prj payload
-        event = genEvent (project ^. projectId) T.Project time ((project ^. seqUp) + 1) $ toJSON payload
+        event = genEvent (project ^. projectId) T.Project time ((project ^. num) + 1) $ toJSON payload
     in
-    (event, over seqUp (+ 1) project)
+    (event, over num (+ 1) project)
 
 
 -- First Operation
--- TODO : Either ? if the prjId is already used ?
 createProject :: ProjectId -> String -> Text -> Day -> ProjectMode -> UTCTime -> (Event, Project)
 createProject prjId shortName name startDate mode time =
     let 
@@ -113,6 +117,7 @@ resetProject pos v =
 
 
 -- For All the updates
+-- TODO => REDO with class ?
 data UpdateProject = 
     UpdateName Text
     deriving (Show, Generic)
@@ -133,21 +138,36 @@ updateName prj newName time =
 -- Event sourcing
 start = Left "start"
 
-sourceProject :: [Event] -> Either String Project
-sourceProject events =
+-- TODO : rewrite
+sourceProject :: Maybe Project -> [Event] -> Either String Project
+sourceProject mbProject events =
     case checkSequence events of 
         Left pos -> Left $ "Can not reconstruct a Project, the sequence #"++(show pos)++" is missing"
         Right (x:xs) ->
-            case fromJSON $ _payload x :: Result Project of
-                Error m -> Left $ "Can not recreate the first version of the Project #"++(show $ _id x)++ " ("++m++")"
-                Success p -> foldl (\ep e ->
-                    case ep of 
-                        Right project -> 
-                            let 
-                                newProject = over seqUp (+ 1) project
-                            in 
-                            case fromJSON (_payload e) :: Result UpdateProject of
-                                Success update -> Right $ applyUpdate newProject update  
-                                Error m -> Left $ "Can not decode a Project update at position "++(show $ _seq e)++" ("++m++")" 
-                        _ -> ep 
-                    ) (Right p) xs
+            case mbProject of 
+                Nothing -> 
+                    case fromJSON $ _payload x :: Result Project of
+                        Error m -> Left $ "Can not recreate the first version of the Project #"++(show $ _id x)++ " ("++m++")"
+                        Success p -> foldl (\ep e ->
+                            case ep of 
+                                Right project -> 
+                                    let 
+                                        newProject = over num (+ 1) project
+                                    in 
+                                    case fromJSON (_payload e) :: Result UpdateProject of
+                                        Success update -> Right $ applyUpdate newProject update  
+                                        Error m -> Left $ "Can not decode a Project update at position "++(show $ _sequence e)++" ("++m++")" 
+                                _ -> ep 
+                            ) (Right p) xs
+                Just project ->  
+                    foldl (\ep e ->
+                            case ep of 
+                                Right project -> 
+                                    let 
+                                        newProject = over num (+ 1) project
+                                    in 
+                                    case fromJSON (_payload e) :: Result UpdateProject of
+                                        Success update -> Right $ applyUpdate newProject update  
+                                        Error m -> Left $ "Can not decode a Project update at position "++(show $ _sequence e)++" ("++m++")" 
+                                _ -> ep 
+                            ) (Right project) (x:xs)

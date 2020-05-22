@@ -1,21 +1,17 @@
 module EventDB.TestEventDB where
 
-import qualified EventDB.Memory.EventDBMemory as E
-import qualified EventDB.EventDB as EDB
 import Data.Aeson 
 import Data.Maybe
 import Data.UUID (nil, fromString)
-import Aggregate.TestProject (lifeOfAProject)
 import Control.Monad
-import Control.Exception
 
-check :: Bool -> String -> IO ()
-check checked msg = 
-    if (assert checked () == ()) then do
-        putStrLn $ msg ++ " ...ok"
-        return ()
-    else 
-        return ()
+import qualified EventDB.Memory.EventDBMemory as E
+import qualified EventDB.EventDB as EDB
+
+import Aggregate.TestProject (lifeOfAProject)
+import Check
+
+
 
 main :: IO ()
 main = do
@@ -24,7 +20,12 @@ main = do
     let (events, project) = lifeOfAProject uuid1
     evts1 <- EDB.events db uuid1
     check (evts1 == []) "no events"
-    mapM_ (EDB.add db) events
+    EDB.add db events uuid1
     evts2 <- EDB.events db uuid1
-    check (evts2 == events) "now we have some events"
+    check (evts2 == events) "the good events"
+    result <- EDB.add db events uuid1
+    case result of 
+        Left _ -> check True "case with duplication of events"
+        _ -> check False "Failed !!!"
+
     

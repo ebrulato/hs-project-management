@@ -1,11 +1,15 @@
 module Repository.Repository where
 
-import Data.UUID (UUID)
-import Data.Aeson (Value)
+import Aggregate.Aggregate (Version)
+import Aggregate.Project (Project, ProjectId)
+import EventDB.EventDB (EventDB)
+
+data RepositoryError = 
+    NO_DATA 
+    | SEQUENCE_ERROR String
+    | VERSION_ERROR
+    | DATA_TYPE_ERROR 
+    deriving (Eq)
 
 class Repository a where
-    add :: a -> UUID -> Value -> IO ()
-    get :: a -> UUID -> IO (Maybe Value)
-    del :: a -> UUID -> IO ()
-    put :: a -> UUID -> Value -> IO ()
-
+    fetchProject :: a -> ProjectId -> Version -> IO (Either RepositoryError Project)

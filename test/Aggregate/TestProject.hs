@@ -38,7 +38,7 @@ mn = 60 -- s
 
 serieTest :: ProjectId -> Test
 serieTest prjId = TestList [TestLabel "Project Management" $ TestList [ 
-    checkCreate "create project" prjId "PMT" "Project Management Test" (fromGregorian 2020 05 20) Kanban (genUTCTime 2020 05 19 (12*hour)) "Project {_projectId = ba7fd9d6-0815-410e-b9f4-91c30244bc7f, _seqUp = 0, _shortName = \"PMT\", _name = \"Project Management Test\", _description = Nothing, _startDate = 2020-05-20, _endDate = Nothing, _backlog = [], _team = [], _extraDayOff = [], _mode = Kanban, _workload = []}"
+    checkCreate "create project" prjId "PMT" "Project Management Test" (fromGregorian 2020 05 20) Kanban (genUTCTime 2020 05 19 (12*hour)) "Project {_projectId = ba7fd9d6-0815-410e-b9f4-91c30244bc7f, _num = 0, _shortName = \"PMT\", _name = \"Project Management Test\", _description = Nothing, _startDate = 2020-05-20, _endDate = Nothing, _backlog = [], _team = [], _extraDayOff = [], _mode = Kanban, _workload = []}"
     , scenario "create a project and update it" prjId 
     , eventSourcingPrinciple "event sourcing principles" prjId
     ]]
@@ -59,14 +59,14 @@ scenario testDesc prjId =
     in
     TestCase $ assertEqual 
         testDesc
-        "Project {_projectId = ba7fd9d6-0815-410e-b9f4-91c30244bc7f, _seqUp = 1, _shortName = \"PMT\", _name = \"The Best Project\", _description = Nothing, _startDate = 2020-05-18, _endDate = Nothing, _backlog = [], _team = [], _extraDayOff = [], _mode = Kanban, _workload = []}" 
+        "Project {_projectId = ba7fd9d6-0815-410e-b9f4-91c30244bc7f, _num = 1, _shortName = \"PMT\", _name = \"The Best Project\", _description = Nothing, _startDate = 2020-05-18, _endDate = Nothing, _backlog = [], _team = [], _extraDayOff = [], _mode = Kanban, _workload = []}" 
         (show prj)  
 
 eventSourcingPrinciple :: String -> ProjectId -> Test
 eventSourcingPrinciple testDesc prjId = 
     let
         (events, prj) = lifeOfAProject prjId 
-        prjSourced = sourceProject events
+        prjSourced = sourceProject Nothing events
     in
     TestCase $ assertEqual 
         testDesc

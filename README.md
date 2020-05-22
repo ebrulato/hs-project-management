@@ -26,16 +26,16 @@ It gives also the possibility to check some interresting kind of evolutions on t
 |---------|------|-----------|-------|
 | Logger | TODO | Used to log the message for audit purpose |
 | Port | TODO | Used to decode the requests | Servant implementation. 
-| Filter | TODO | Used to check the request parameters | As I will use Servant, this part should very simple and focus on the values of the parameters.
+| Filter | A first preview | Used to check the request parameters | As I will use Servant, this part should very simple and focus on the values of the parameters.
 | Domain Event Dispatcher| TODO | Used to dispatch the domain events to the Projections Updaters and to the external Adapter. It also have to store the Domain Events in the Domain Event DB. It is a key component for the coherence of the whole system. |
 | Domain Event DB | A in-memory version. | Used to store the Domain Events. Very usefull to make the Event Sourcing part of the project, and to add some new projections. | A in-memory version for test purpose and another one based on PostgreSQL ?  
-| Command Handler | TODO | Used to orchestrate the Aggregate Repository, the and to perform the Commands on the Aggregates. |
-| Aggregate Repository | something | Used to provides a managed access to the Aggregates. | A in-memory version, based on the Domain Event DB, and maybe in the future on a managed Redis (with hedis ?)
-| Aggregate | first samples | Implements the Domain Aggregates, and generates Domain Event for the records... | today a very naive version to describe a project.
+| Command Handler | A first version, which manages the *Filter* and the *Domain Event DB* and to exexcute the *commands* | Used to orchestrate the Aggregate Repository, the and to perform the Commands on the Aggregates. |
+| Aggregate Repository | A pure *domain driven* version, needs improvements. Fetches the Aggregate on the *Domain Event DB* | Used to provides a managed access to the Aggregates. | A in-memory version, based on the Domain Event DB, and maybe in the future on a managed Redis (with hedis ?)
+| Aggregate | second version, need improvement | Implements the Domain Aggregates, and generates Domain Event for the records... | today a very naive version to describe a project.
 | Adapter | TODO | have to filter the Domain Events for other systems and to guarantee that the messages will be delivered | We need to have at least another system :(
 | Projection Updater | TODO | Used to organize the data for some business requirements that can not be provided by the Aggregate Repository. |
 | Event Sourcing | the begining | Used to reconstruct an Aggregate based only on its Domain Events. | The current work on this part is a first POC. But it works. I have to improve the error management in the future, but this version try to check the integrity of the Events. 
-| Bus | TODO | The pipeline used to manage each request safely | It could be a lot of thing, but in my simple version I think we could consider that it will be implemented with the Servant library. 
+| Bus | A first version with filter and command execution | The pipeline used to manage each request safely | It could be a lot of thing, but in my simple version I think we could consider that it will be implemented with the Servant library. 
 
 ## Query
 

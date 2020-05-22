@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 71f16c14045533ed4506f726df45ff722cf4b205fe95b120e93be533e76c6b79
+-- hash: a076b587d632850133d18af52963cb3945579a6cc686e6969fefb4632b7a0a4b
 
 name:           hs-project-management
 version:        0.1.0.0
@@ -28,9 +28,13 @@ source-repository head
 
 library
   exposed-modules:
+      Aggregate.Aggregate
       Aggregate.Project
       Aggregate.Type.Types
       Aggregate.User
+      Bus.Command
+      Bus.Project.Create
+      Bus.Project.UpdateName
       DomainEvent.Event
       EventDB.EventDB
       EventDB.Memory.EventDBMemory
@@ -76,6 +80,7 @@ test-suite hs-project-management-test
   main-is: Spec.hs
   other-modules:
       Aggregate.TestProject
+      Check
       EventDB.TestEventDB
       Repository.TestRepository
       Paths_hs_project_management
