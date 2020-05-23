@@ -61,8 +61,12 @@ The module has been developed in Haskell, so you must follow the installation of
 
 ## Test the module
 
-Theses tests cover only the translation part of the module.
-The CLI and the Web Service (Servant) are not covered.
+You can test this module with the command
 
 > $> stack test
 
+## Documentation generation
+
+Use the script *gendoc.sh* to generate the documentation.
+
+> $> ./gendoc.sh

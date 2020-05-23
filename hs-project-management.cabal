@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3b95eb82188c103194c711a38d0facb497c673f66e7daa3eb1ce9282708aa03a
+-- hash: 07fea611f007b36eca35b72759513fc81f6ee803ebb9d216427d85480594a45e
 
 name:           hs-project-management
 version:        0.1.0.0
@@ -80,6 +80,7 @@ test-suite hs-project-management-test
   main-is: Spec.hs
   other-modules:
       Aggregate.PM.TestProject
+      Bus.TestBus
       Check
       EventDB.TestEventDB
       Repository.TestRepository

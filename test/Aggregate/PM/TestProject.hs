@@ -10,6 +10,7 @@ import Data.UUID
 import Data.Maybe
 import Data.Aeson
 
+import Aggregate.Aggregate
 import Aggregate.PM.Project
 import DomainEvent.Event
 
@@ -66,7 +67,7 @@ eventSourcingPrinciple :: String -> ProjectId -> Test
 eventSourcingPrinciple testDesc prjId = 
     let
         (events, prj) = lifeOfAProject prjId 
-        prjSourced = sourceProject Nothing events
+        prjSourced = source Nothing events :: Either String Project
     in
     TestCase $ assertEqual 
         testDesc

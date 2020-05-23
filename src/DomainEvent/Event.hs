@@ -35,6 +35,7 @@ genEvent id aggregate time seq payload =
 -- Check that the sequence is complete, and returned it with the correct order for parsing
 -- the sequence could be partial (fot partial update case)
 -- the sequence could be empty
+-- TODO : check the aggregate type
 checkSequence :: [Event] -> Either () [Event]
 checkSequence events =
     let 
