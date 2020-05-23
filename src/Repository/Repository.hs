@@ -1,7 +1,7 @@
 module Repository.Repository where
 
 import Aggregate.Aggregate (Version)
-import Aggregate.Project (Project, ProjectId)
+import Aggregate.PM.Project (Project, ProjectId)
 import EventDB.EventDB (EventDB)
 
 data RepositoryError = 

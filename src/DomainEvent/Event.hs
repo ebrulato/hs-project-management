@@ -8,7 +8,7 @@ import Data.UUID (UUID)
 import Data.List (sort)
 import GHC.Generics (Generic)
 
-import Aggregate.Type.Types (AggregateType)
+import Aggregate.PM.Types (AggregateType) -- TODO remove this reference to keep the Event definition pure.
 
 data Event = Event {
     _id :: UUID
@@ -35,16 +35,16 @@ genEvent id aggregate time seq payload =
 -- Check that the sequence is complete, and returned it with the correct order for parsing
 -- the sequence could be partial (fot partial update case)
 -- the sequence could be empty
-checkSequence :: [Event] -> Either Int [Event]
+checkSequence :: [Event] -> Either () [Event]
 checkSequence events =
     let 
         eventsSorted = sort events
         firstVersion = if length eventsSorted == 0 then 0 else _sequence $ head events  
         lastVersion = if length eventsSorted == 0 then 0 else _sequence $ last events
-        foundedVersion = foldl (\ver e -> if (_sequence e) == ver then ver + 1 else ver) firstVersion eventsSorted
+        (foundedVersion, pos) = (foldl (\(ver, pos) e -> if (_sequence e) == ver then (ver + 1, pos +1) else (ver, pos)) (firstVersion, 0) eventsSorted)
     in
-    if foundedVersion == lastVersion then
+    if pos == length events then
         Right eventsSorted
     else
-        Left foundedVersion
+        Left ()
 

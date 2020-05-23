@@ -1,11 +1,11 @@
-module Bus.Project.UpdateName where
+module Command.PM.UpdateName where
 
 import Data.Text (Text)
 
-import Aggregate.Aggregate (Version, version, aggregateId)
-import Aggregate.Project (updateName, ProjectId)
+import Aggregate.Aggregate (Version, Aggregate(..))
+import Aggregate.PM.Project (updateName, ProjectId)
 import Repository.Repository (fetchProject)
-import Bus.Command 
+import Command.Command (Command(..))
 
 data CommandProjectUpdateName = CommandProjectUpdateName {
     projectId :: ProjectId

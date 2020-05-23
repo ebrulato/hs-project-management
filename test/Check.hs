@@ -4,8 +4,10 @@ import Control.Exception
 
 check :: Bool -> String -> IO ()
 check checked msg = 
-    if (assert checked () == ()) then do
+    if checked then do 
         putStrLn $ msg ++ " ...ok"
         return ()
-    else 
+    else do 
+        putStrLn $ msg ++ " ... KO !!!"
+        let res = assert checked () 
         return ()

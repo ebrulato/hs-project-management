@@ -8,7 +8,7 @@ import qualified EventDB.Memory.EventDBMemory as EDB (new)
 import qualified Repository.Memory.RepositoryMemory as M
 import Repository.Repository
 
-import Aggregate.TestProject (lifeOfAProject)
+import Aggregate.PM.TestProject (lifeOfAProject)
 import Check
 
 main :: IO ()

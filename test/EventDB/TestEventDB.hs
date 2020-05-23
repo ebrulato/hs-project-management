@@ -8,7 +8,7 @@ import Control.Monad
 import qualified EventDB.Memory.EventDBMemory as E
 import qualified EventDB.EventDB as EDB
 
-import Aggregate.TestProject (lifeOfAProject)
+import Aggregate.PM.TestProject (lifeOfAProject)
 import Check
 
 
@@ -25,7 +25,7 @@ main = do
     check (evts2 == events) "the good events"
     result <- EDB.add db events uuid1
     case result of 
-        Left _ -> check True "case with duplication of events"
-        _ -> check False "Failed !!!"
+        Left msg -> check True $ "case with duplication of events : " ++ msg
+        _ -> check False "case with duplication of events error :("
 
     

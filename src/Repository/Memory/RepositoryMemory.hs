@@ -10,8 +10,9 @@ import Data.HashTable.IO as H
 
 import Repository.Repository
 import EventDB.EventDB  (EventDB(..))
-import Aggregate.Aggregate (Version, version)
-import Aggregate.Project (Project, ProjectId, sourceProject)
+import Aggregate.Aggregate (Version, version, Aggregate(..))
+
+import Aggregate.PM.Project (Project, ProjectId)
 
 data ValueRepo = Project Project
 
@@ -33,7 +34,7 @@ instance (EventDB a) => Repository (RepoMemo a) where
             Nothing -> do 
                 events <- events (eventDB repo) projectId
                 if length events == 0 then return $ Left NO_DATA 
-                else case sourceProject Nothing events of
+                else case source Nothing events :: Either String Project of
                     Left msg -> return $ Left $ SEQUENCE_ERROR msg 
                     Right project -> do 
                         H.insert (hmap repo) projectId $ Project project 
@@ -45,7 +46,7 @@ instance (EventDB a) => Repository (RepoMemo a) where
                 events <- partialEvents (eventDB repo) projectId (version curProject) 
                 if (length events > 0) then do
                     H.delete (hmap repo) projectId 
-                    case sourceProject (Just curProject) events of
+                    case source (Just curProject) events :: Either String Project of
                         Left msg -> return $ Left $ SEQUENCE_ERROR msg 
                         Right project -> do 
                             H.insert (hmap repo) projectId $ Project project 
